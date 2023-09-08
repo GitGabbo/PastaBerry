@@ -4,6 +4,7 @@ import os
 import time
 import glob
 import signal
+import sys
 
 ### TEMPERATURE INFO
 os.system('modprobe w1-gpio')
@@ -57,20 +58,28 @@ motor2_step_counter = 0
 RELE_OUT = 26
 
 
+first_execution = True
+
+
 def init_pins():
-	GPIO.setmode(GPIO.BCM)				# choose BCM or BOARD  
-	GPIO.setup(RELE_OUT, GPIO.OUT)		# set a port/pin as an output   
-	GPIO.output(RELE_OUT, GPIO.LOW)
+	# choose BCM or BOARD
+	GPIO.setmode(GPIO.BCM)  
 	# setting up
-	GPIO.setup(motor1_in1, GPIO.OUT)
-	GPIO.setup(motor1_in2, GPIO.OUT)
-	GPIO.setup(motor1_in3, GPIO.OUT)
-	GPIO.setup(motor1_in4, GPIO.OUT)
-	GPIO.setup(motor2_in1, GPIO.OUT)
-	GPIO.setup(motor2_in2, GPIO.OUT)
-	GPIO.setup(motor2_in3, GPIO.OUT)
-	GPIO.setup(motor2_in4, GPIO.OUT)
+	if first_execution:
+		GPIO.setup(RELE_OUT, GPIO.OUT)
+		GPIO.setup(motor1_in1, GPIO.OUT)
+		GPIO.setup(motor1_in2, GPIO.OUT)
+		GPIO.setup(motor1_in3, GPIO.OUT)
+		GPIO.setup(motor1_in4, GPIO.OUT)
+		GPIO.setup(motor2_in1, GPIO.OUT)
+		GPIO.setup(motor2_in2, GPIO.OUT)
+		GPIO.setup(motor2_in3, GPIO.OUT)
+		GPIO.setup(motor2_in4, GPIO.OUT)
 	# initializing
+	clean_up()
+
+def clean_up():
+	GPIO.output(RELE_OUT, GPIO.LOW)
 	GPIO.output(motor1_in1, GPIO.LOW)
 	GPIO.output(motor1_in2, GPIO.LOW)
 	GPIO.output(motor1_in3, GPIO.LOW)
@@ -97,23 +106,13 @@ def rotate_motors(clockwise):
 			motor2_step_counter = (motor2_step_counter - 1) % 8
 		time.sleep(step_sleep)
 
-# handle abnormal stop
-def stop_handler(signum, frame):
-	# shutdown the relay
-	GPIO.output(RELE_OUT, 0)
-	# reset all GPIO ports
-	GPIO.cleanup()
-	print("Relay stopped. Everything is ok!")
-	sys.exit(130)
-
-signal.signal(signal.SIGTSTP, stop_handler)
-
 async def cook_script(pasta_timer, context, chat_id):
 	BOILING_WATER_TEMPERATURE = 90
 	pasta_timer = int(pasta_timer)
 	init_pins()
 	try:
-		GPIO.output(RELE_OUT, GPIO.HIGH)				# set port/pin value to 0/GPIO.LOW/False
+		first_execution = False
+		GPIO.output(RELE_OUT, GPIO.HIGH)
 		msg = "Burner turned on"
 		print(f"\n\n{msg}\n\n")
 		await context.bot.send_message(chat_id=chat_id, text=msg)
@@ -142,8 +141,8 @@ async def cook_script(pasta_timer, context, chat_id):
 		await context.bot.send_message(chat_id=chat_id, text=msg)
 
 		# wait for pasta to be ready
-		sleep(pasta_timer*60)
-
+		#sleep(pasta_timer*60)
+		sleep(1)
 		# done
 		msg = f"Your pasta is ready"
 		print(f"\n\n{msg}\n\n")
@@ -154,7 +153,25 @@ async def cook_script(pasta_timer, context, chat_id):
 		msg = "Burner turned off"
 		print(f"\n\n{msg}\n\n")
 		await context.bot.send_message(chat_id=chat_id, text=msg)
-		# reset GPIO pins
-		GPIO.cleanup()						# resets all GPIO ports used by this program
-	except Exception:				# trap a CTRL+C keyboard interrupt
-		stop_handler(signal.SIGINT, 0)
+	except KeyboardInterrupt:
+		print("KeyboardInterrupt captured")
+	except:				# trap a CTRL+C keyboard interrupt
+		print("An error has occurred")
+		GPIO.cleanup()
+	finally:
+		clean_up()
+		print("Relay stopped. Everything is ok!")
+
+async def shutdown(context, chat_id):
+	GPIO.cleanup()
+	first_execution = True
+	msg = f"Your pins have been cleaned"
+	print(f"\n\n{msg}\n\n")
+	await context.bot.send_message(chat_id=chat_id, text=msg)
+
+def handler(signum, frame):
+	GPIO.cleanup()
+	print('Ctrl+Z pressed, pins cleared')
+	first_execution = True
+
+signal.signal(signal.SIGTSTP, handler)
