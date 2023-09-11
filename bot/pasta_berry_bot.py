@@ -5,7 +5,6 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 import cook
 
-# pip install python-telegram-bot --upgrade
 
 dotenv.load_dotenv()
 TOKEN = os.environ["TOKEN"]
