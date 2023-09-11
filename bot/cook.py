@@ -108,7 +108,6 @@ async def cook_script(pasta_timer, context, chat_id):
 	pasta_timer = int(pasta_timer)
 	init_pins()
 	try:
-		first_execution = False
 		GPIO.output(RELE_OUT, GPIO.HIGH)
 		msg = "Burner turned on"
 		print(f"\n\n{msg}\n\n")
