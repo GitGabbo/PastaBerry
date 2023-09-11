@@ -58,23 +58,20 @@ motor2_step_counter = 0
 RELE_OUT = 26
 
 
-first_execution = True
-
 
 def init_pins():
 	# choose BCM or BOARD
 	GPIO.setmode(GPIO.BCM)  
 	# setting up
-	if first_execution:
-		GPIO.setup(RELE_OUT, GPIO.OUT)
-		GPIO.setup(motor1_in1, GPIO.OUT)
-		GPIO.setup(motor1_in2, GPIO.OUT)
-		GPIO.setup(motor1_in3, GPIO.OUT)
-		GPIO.setup(motor1_in4, GPIO.OUT)
-		GPIO.setup(motor2_in1, GPIO.OUT)
-		GPIO.setup(motor2_in2, GPIO.OUT)
-		GPIO.setup(motor2_in3, GPIO.OUT)
-		GPIO.setup(motor2_in4, GPIO.OUT)
+	GPIO.setup(RELE_OUT, GPIO.OUT)
+	GPIO.setup(motor1_in1, GPIO.OUT)
+	GPIO.setup(motor1_in2, GPIO.OUT)
+	GPIO.setup(motor1_in3, GPIO.OUT)
+	GPIO.setup(motor1_in4, GPIO.OUT)
+	GPIO.setup(motor2_in1, GPIO.OUT)
+	GPIO.setup(motor2_in2, GPIO.OUT)
+	GPIO.setup(motor2_in3, GPIO.OUT)
+	GPIO.setup(motor2_in4, GPIO.OUT)
 	# initializing
 	clean_up()
 
@@ -141,8 +138,8 @@ async def cook_script(pasta_timer, context, chat_id):
 		await context.bot.send_message(chat_id=chat_id, text=msg)
 
 		# wait for pasta to be ready
-		#sleep(pasta_timer*60)
-		sleep(1)
+		sleep(pasta_timer*60)
+		
 		# done
 		msg = f"Your pasta is ready"
 		print(f"\n\n{msg}\n\n")
@@ -155,16 +152,15 @@ async def cook_script(pasta_timer, context, chat_id):
 		await context.bot.send_message(chat_id=chat_id, text=msg)
 	except KeyboardInterrupt:
 		print("KeyboardInterrupt captured")
-	except:				# trap a CTRL+C keyboard interrupt
+	except:
+		# trap a CTRL+C keyboard interrupt
 		print("An error has occurred")
-		GPIO.cleanup()
 	finally:
-		clean_up()
+		GPIO.cleanup()
 		print("Relay stopped. Everything is ok!")
 
 async def shutdown(context, chat_id):
 	GPIO.cleanup()
-	first_execution = True
 	msg = f"Your pins have been cleaned"
 	print(f"\n\n{msg}\n\n")
 	await context.bot.send_message(chat_id=chat_id, text=msg)
@@ -172,6 +168,5 @@ async def shutdown(context, chat_id):
 def handler(signum, frame):
 	GPIO.cleanup()
 	print('Ctrl+Z pressed, pins cleared')
-	first_execution = True
 
 signal.signal(signal.SIGTSTP, handler)
